@@ -1,9 +1,10 @@
 module.exports = {
     plugins: {
         autoprefixer: {},
-        "postcss-px2rem": {
-            remUnit: 75, // 设计图为750 * height
-            remPrecision: 2 // rem的小数点后位数
+        "postcss-px2rem-exclude": {
+            remUnit: 75,
+            remPrecision: 2,
+            exclude: /node_modules|folder_name/i
         }
     }
 };

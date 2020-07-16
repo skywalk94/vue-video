@@ -9,40 +9,49 @@
         webkit-playsinline
         x5-video-player-type="h5-page"
         :poster="poster"
-        @waiting="getWait($event)"
-        @canplaythrough="getCan($event)"
-        @play="getPlay($event)"
-        @pause="getPause($event)"
-        @timeupdate="getUpdate($event)"
-        @ended="getEnd($event)"
+        @waiting="waitVideo($event)"
+        @canplaythrough="canVideo($event)"
+        @play="playVideo($event)"
+        @pause="pauseVideo($event)"
+        @timeupdate="updateVideo($event)"
       ></video>
-      <div class="float" @click="globalControl()"></div>
-      <div class="loading" v-if="showLoading"></div>
+      <div class="floVideo" @click="showControl()"></div>
+      <div class="loading" v-if="isLoading"></div>
       <!--视频控件 -->
-      <div class="control" v-if="controlShow">
-        <div class="transmit" @click="controlPlay()">
+      <div class="control" v-if="isControl">
+        <div class="conPlay" @click="controlPlay()">
           <img
-            :src="play ? 'https://sucai.suoluomei.cn/sucai_zs/images/20200425174801-1.png': 'https://sucai.suoluomei.cn/sucai_zs/images/20200425174802-2.png' "
+            :src="isPlay ? 'https://sucai.suoluomei.cn/sucai_zs/images/20200425174801-1.png': 'https://sucai.suoluomei.cn/sucai_zs/images/20200425174802-2.png' "
             alt
           />
         </div>
-        <div class="time">{{ currentTime }} / {{ duration }}</div>
-        <div class="slider">
-          <div class="schedule" :style="{width: schedule +'%'}"></div>
+        <div class="conTime">{{ currentTime }} / {{ duration }}</div>
+        <div class="conSlider">
+          <van-slider
+            v-model="schedule"
+            button-size="12px"
+            active-color="#6CEFCB"
+            @drag-start="startSlide()"
+            @input="inputSlide()"
+            @change="changeSlide()"
+          />
         </div>
-        <div class="speed" @click="controlSpeed()">{{ speed }}</div>
-        <div class="full" @click="fullScreen()">
+        <div class="conSpeed" @click="showMultiple()">{{ speed }}</div>
+        <div class="conFull" @click="fullScreen()">
           <img src="https://sucai.suoluomei.cn/sucai_zs/images/20200427113903-3.png" alt />
         </div>
       </div>
       <!-- 倍数弹窗 -->
-      <div class="multiple" v-if="multipleShow">
+      <div class="multiple" v-if="isMultiple">
         <span
           v-for="(item, index) in multipleList"
           :key="index"
           :class="index == active ? 'choice' : ''"
           @click="getMultiple(item, index)"
-        >{{ item.text }}</span>
+        >{{ item.label }}</span>
+      </div>
+      <div class="velocity" v-if="!isControl">
+        <div :style="{width: schedule +'%'}"></div>
       </div>
     </div>
     <div
@@ -63,35 +72,36 @@ export default {
         "https://video.pearvideo.com/mp4/adshort/20200715/cont-1685978-15265163_adpkg-ad_hd.mp4",
         "https://video.pearvideo.com/mp4/third/20200715/cont-1686001-10008579-110217-hd.mp4"
       ],
-      play: false,
+      isPlay: false,
       active: 3,
-      multipleShow: false,
-      controlShow: true,
-      showLoading: false,
+      isMultiple: false,
+      isControl: true,
+      isLoading: false,
       multipleList: [
-        { text: "2.0x", value: 2.0 },
-        { text: "1.5x", value: 1.5 },
-        { text: "1.25x", value: 1.25 },
-        { text: "1.0x", value: 1.0 },
-        { text: "0.5x", value: 0.5 }
+        { label: "2.0x", value: 2.0 },
+        { label: "1.5x", value: 1.5 },
+        { label: "1.25x", value: 1.25 },
+        { label: "1.0x", value: 1.0 },
+        { label: "0.5x", value: 0.5 }
       ],
       speed: "1.0x",
-      playbackRate: 1,
+      rawDuration: 0,
+      rawCurrentTime: 0,
       duration: "00:00",
       currentTime: "00:00",
       poster: "",
       schedule: 0,
-      setTimeout: ""
+      setTimeout: "",
+      flag: true
     };
   },
   mounted() {
     this.$refs.video.src = this.videoList[0];
-    this.$refs.video.play();
   },
 
   methods: {
     // 秒转分、时
-    timeConversion(duration) {
+    changeTime(duration) {
       var time = parseInt(duration);
       var hour = 0;
       var minute = 0;
@@ -124,43 +134,42 @@ export default {
     },
 
     // 点击视频控制显示
-    globalControl() {
-      if (this.controlShow) {
-        this.controlShow = false;
+    showControl() {
+      if (this.isControl) {
+        this.isControl = false;
         clearTimeout(this.setTimeout);
       } else {
-        this.controlShow = true;
+        this.isControl = true;
         this.setTimeout = setTimeout(() => {
-          this.controlShow = false;
+          this.isControl = false;
         }, 3500);
       }
-
-      this.multipleShow = false;
+      this.isMultiple = false;
     },
 
     // 控制视频的播放暂停
     controlPlay() {
       if (this.$refs.video.paused) {
         this.$refs.video.play();
-        this.play = true;
+        this.isPlay = true;
       } else {
         this.$refs.video.pause();
-        this.play = false;
+        this.isPlay = false;
       }
     },
 
     // 显示倍数列表
-    controlSpeed() {
-      this.controlShow = false;
-      this.multipleShow = true;
+    showMultiple() {
+      this.isControl = false;
+      this.isMultiple = true;
     },
 
     // 选择倍数
     getMultiple(item, index) {
       this.active = index;
       this.$refs.video.playbackRate = item.value;
-      this.speed = item.text;
-      this.multipleShow = false;
+      this.speed = item.label;
+      this.isMultiple = false;
     },
 
     // 全屏
@@ -169,35 +178,59 @@ export default {
     },
 
     // 视频等待播放
-    getWait(e) {
+    waitVideo(e) {
       // 获取当前网速
       // var netwolk = navigator.connection.downlink;
       // console.log((netwolk * 1024) / 8);
-      this.showLoading = true;
+      this.isLoading = true;
     },
 
     // 视频可以开始播放
-    getCan(e) {
-      this.showLoading = false;
+    canVideo(e) {
+      this.isLoading = false;
     },
 
     // 视频播放
-    getPlay(e) {
-      this.play = true;
+    playVideo(e) {
+      this.isPlay = true;
     },
 
     // 视频暂停
-    getPause(e) {
-      this.play = false;
+    pauseVideo(e) {
+      this.isPlay = false;
     },
 
     // 视频进度发生变化
-    getUpdate(e) {
-      var duration = this.timeConversion(e.srcElement.duration);
-      var currentTime = this.timeConversion(e.srcElement.currentTime);
-      this.duration = duration;
+    updateVideo(e) {
+      if (this.flag) {
+        var duration = e.srcElement.duration;
+        var currentTime = e.srcElement.currentTime;
+        this.rawDuration = duration;
+        this.rawCurrentTime = currentTime;
+        this.duration = this.changeTime(duration);
+        this.currentTime = this.changeTime(currentTime);
+        this.schedule = (currentTime / duration) * 100;
+      }
+    },
+
+    // 开始拖动进度条
+    startSlide() {
+      this.flag = false;
+      clearTimeout(this.setTimeout);
+    },
+
+    // 监听进度条发生变化
+    inputSlide() {
+      var curren = (this.rawDuration * this.schedule) / 100;
+      var currentTime = this.changeTime(curren);
       this.currentTime = currentTime;
-      this.schedule = (e.srcElement.currentTime / e.srcElement.duration) * 100;
+    },
+
+    // 拖动进度条
+    changeSlide() {
+      var curren = (this.rawDuration * this.schedule) / 100;
+      this.$refs.video.currentTime = curren;
+      this.flag = true;
     },
 
     // 切换视频源
@@ -226,7 +259,12 @@ video {
   height: 100%;
 }
 
-.float {
+img {
+  width: 100%;
+  height: 100%;
+}
+
+.floVideo {
   position: absolute;
   top: 0;
   left: 0;
@@ -268,7 +306,7 @@ video {
   justify-content: space-evenly;
   background: rgba(0, 0, 0, 0.5);
   z-index: 10;
-  animation: fadeInLeft 0.5s;
+  animation: fadeIn 0.5s;
 }
 
 .multiple span {
@@ -276,7 +314,7 @@ video {
   color: #fff;
 }
 
-@keyframes fadeInLeft {
+@keyframes fadeIn {
   0% {
     transform: translate(100%, 0);
   }
@@ -289,41 +327,35 @@ video {
   position: absolute;
   bottom: 0;
   width: 100%;
-  height: 100px;
-  padding: 0px 20px;
+  height: 60px;
+  padding: 0px 30px;
   box-sizing: border-box;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.7));
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   color: #6cefcb;
   font-size: 24px;
   z-index: 10;
 }
 
-.transmit {
+.conPlay {
   width: 50px;
   height: 50px;
 }
 
-.transmit img {
-  width: 100%;
-  height: 100%;
-}
-
-.time {
-  margin: 0 20px;
-}
-
-.slider {
-  position: relative;
+.conSlider {
   width: 45%;
-  height: 3px;
-  border-radius: 5px;
+}
+
+.velocity {
+  position: absolute;
+  width: 100%;
+  height: 5px;
+  border-radius: 2px;
   background: #fff;
 }
 
-.schedule {
+.velocity div {
   position: absolute;
   top: 0;
   left: 0;
@@ -338,17 +370,8 @@ video {
   background: #fff;
 }
 
-.speed {
-  margin: 0 20px;
-}
-
-.full {
+.conFull {
   width: 35px;
-}
-
-.full img {
-  width: 100%;
-  height: 100%;
 }
 
 .choice {

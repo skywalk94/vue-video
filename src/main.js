@@ -4,8 +4,10 @@ import router from './router'
 import store from './store'
 import 'lib-flexible/flexible'
 Vue.config.productionTip = false
-
-
+import {
+  Slider
+} from 'vant';
+Vue.use(Slider);
 new Vue({
   router,
   store,
