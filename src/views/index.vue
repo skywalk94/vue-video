@@ -29,6 +29,7 @@
         <div class="conSlider">
           <van-slider
             v-model="schedule"
+            :disabled="isDisabled"
             button-size="12px"
             active-color="#6CEFCB"
             @drag-start="startSlide()"
@@ -92,7 +93,8 @@ export default {
       poster: "",
       schedule: 0,
       setTimeout: "",
-      flag: true
+      flag: true,
+      isDisabled: true
     };
   },
   mounted() {
@@ -193,6 +195,7 @@ export default {
     // 视频播放
     playVideo(e) {
       this.isPlay = true;
+      this.isDisabled = false;
     },
 
     // 视频暂停
